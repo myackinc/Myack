@@ -103,7 +103,7 @@ class Namespace(Component):
                 and not isinstance(attr, Dispatcher)
                 and attr.enabled
             ):
-                yield from attr.iter_methods(namespaces + (attr,), f"{name}.")
+                yield from attr.iter_methods(namespaces + (attr,), f"{prefix}{name}.")
 
 
 class Dispatcher(Namespace):

@@ -18,7 +18,14 @@ async def test_api(conductor):
     class DivisionByZero(BaseError, code="division_by_zero"):
         message = "Division by zero"
 
+    class Nested(Namespace):
+        @handler
+        async def get_nothing(self):
+            return
+
     class Foo(Namespace):
+        nested: Nested
+
         @middleware(1)
         async def middleware_1(self, handler, request):
             response = await handler(request)
@@ -119,6 +126,8 @@ async def test_api(conductor):
         ]
     }
     assert response.warnings == []
+    response = await app.dispatch(Request(id=1, method="foo.nested.get_nothing"))
+    assert response.result is None
 
     response = await app.dispatch(
         Request(
@@ -138,6 +147,10 @@ async def test_api(conductor):
         ],
     }
     assert response.warnings == [RPCDeprecatedVersion()]
+    response = await app.dispatch(
+        Request(id=1, method="foo.nested.get_nothing", meta={"version": (1, 0)})
+    )
+    assert response.result is None
 
     response = await app.dispatch(
         Request(
@@ -157,6 +170,10 @@ async def test_api(conductor):
         ],
     }
     assert response.warnings == []
+    response = await app.dispatch(
+        Request(id=1, method="foo.nested.get_nothing", meta={"version": (2, 0)})
+    )
+    assert response.result is None
 
     with pytest.raises(RPCUnsupportedVersion) as info:
         await app.dispatch(
