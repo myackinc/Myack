@@ -149,7 +149,7 @@ with warnings.catch_warnings():
             super().__init__(**kw)
 
         def app_url(self, url: Union[str, URL]) -> Union[str, URL]:
-            if isinstance(url, str) and "//:" not in url:
+            if isinstance(url, str) and "://" not in url:
                 return URL.build(
                     scheme="http", host=self.app_host, port=self.app_port, path=url
                 )

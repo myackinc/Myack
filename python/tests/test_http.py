@@ -64,10 +64,14 @@ async def test_http(conductor, unused_tcp_port):
     app = await conductor(
         RootApp, config={"http.host": "localhost", "http.port": unused_tcp_port}
     )
+    url = f"http://{app.config['http.host']}:{app.config['http.port']}"
 
     client = app.get_client()
 
     async with client.get("/foo") as response:
+        assert await response.text() == "RootApp.foo + RootApp.baz + RootApp.bar"
+
+    async with client.get(f"{url}/foo") as response:
         assert await response.text() == "RootApp.foo + RootApp.baz + RootApp.bar"
 
     async with client.get("/app/foo") as response:
@@ -83,6 +87,12 @@ async def test_http(conductor, unused_tcp_port):
         )
 
     async with client.ws_connect("/ping-pong") as ws:
+        await ws.send_str("ping")
+        msg = await ws.receive_str()
+        assert msg == "pong"
+        await ws.send_str("close")
+
+    async with client.ws_connect(f"{url}/ping-pong") as ws:
         await ws.send_str("ping")
         msg = await ws.receive_str()
         assert msg == "pong"
