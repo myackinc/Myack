@@ -36,10 +36,16 @@ class Serializer(Component):
 
         return decorator
 
-    def dumps(self, data: Any) -> bytes:
+    def dumps(self, data: Any) -> str:
+        return self._dumps(data, default=self.before_dump)
+
+    def dumpb(self, data: Any) -> bytes:
         return self._dumps(data, default=self.before_dump).encode("utf-8")
 
-    def loads(self, data: bytes) -> Any:
+    def loads(self, data: str) -> Any:
+        return self._loads(data, object_hook=self.after_load)
+
+    def loadb(self, data: bytes) -> Any:
         return self._loads(data, object_hook=self.after_load)
 
     def before_dump(self, obj):

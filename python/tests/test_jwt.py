@@ -55,8 +55,8 @@ async def test_jwt(conductor, config):
     signing_input, signature = token.rsplit(b".", 1)
     header, payload = signing_input.split(b".")
 
-    header = jwt.serializer.loads(b64decode(header))
-    payload = jwt.serializer.loads(b64decode(payload))
+    header = jwt.serializer.loadb(b64decode(header))
+    payload = jwt.serializer.loadb(b64decode(payload))
     signature = b64decode(signature)
     effective_signature = hmac.new(
         binascii.unhexlify(config["jwt.test.key"]),
@@ -126,9 +126,9 @@ async def test_jwt_max_ttl(conductor, config, max_ttl):
     assert payload["foo"] == "bar"
 
     header, payload, _ = token.split(b".")
-    payload = jwt.serializer.loads(b64decode(payload))
+    payload = jwt.serializer.loadb(b64decode(payload))
     payload["exp"] += 20
-    payload = b64encode(jwt.serializer.dumps(payload))
+    payload = b64encode(jwt.serializer.dumpb(payload))
     signature = b64encode(
         hmac.new(
             binascii.unhexlify(config["jwt.test.key"]),
@@ -149,9 +149,9 @@ async def test_jwt_max_ttl(conductor, config, max_ttl):
         assert info.value.data == {"sub": "test"}
 
     header, payload, _ = token.split(b".")
-    payload = jwt.serializer.loads(b64decode(payload))
+    payload = jwt.serializer.loadb(b64decode(payload))
     payload["exp"] += 20
-    payload = b64encode(jwt.serializer.dumps(payload))
+    payload = b64encode(jwt.serializer.dumpb(payload))
     signature = b64encode(
         hmac.new(
             binascii.unhexlify(config["jwt.test.key"]),

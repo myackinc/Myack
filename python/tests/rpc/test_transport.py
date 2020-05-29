@@ -118,17 +118,17 @@ async def test_errors(conductor, unused_tcp_port):
     async with client.http_client.post(
         client.endpoint, data=b"invalid_json"
     ) as response:
-        response = client.serializer.loads(await response.read())
+        response = client.serializer.loadb(await response.read())
         error = response["error"]
         exc = BaseExc.dispatch(error["code"], error["message"], **error["data"])
         assert isinstance(exc, RPCParseError)
         assert exc.data["reason"] == "Parse error at offset 0: Invalid value."
 
-    request_body = client.serializer.dumps(
+    request_body = client.serializer.dumpb(
         {"method": "div", "params": {"x": 4, "y": 2}}
     )
     async with client.http_client.post(client.endpoint, data=request_body) as response:
-        response = client.serializer.loads(await response.read())
+        response = client.serializer.loadb(await response.read())
         error = response["error"]
         exc = BaseExc.dispatch(error["code"], error["message"], **error["data"])
         assert isinstance(exc, RPCInvalidRequest)

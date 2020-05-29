@@ -14,12 +14,20 @@ async def test_serializer(conductor):
 
     serializer = await conductor(Serializer)
 
-    assert serializer.loads(b'{"x": 1}') == {"x": 1}
-    assert serializer.dumps({"x": 1}) == b'{"x":1}'
-    assert serializer.dumps(Foo()) == b'{"foo":"bar"}'
+    assert serializer.loads('{"x": 1}') == {"x": 1}
+    assert serializer.dumps({"x": 1}) == '{"x":1}'
+    assert serializer.dumps(Foo()) == '{"foo":"bar"}'
+
+    assert serializer.loadb(b'{"x": 1}') == {"x": 1}
+    assert serializer.dumpb({"x": 1}) == b'{"x":1}'
+    assert serializer.dumpb(Foo()) == b'{"foo":"bar"}'
 
     with pytest.raises(TypeError) as info:
         serializer.dumps(object())
+    assert info.value.args == (f"Type {object} is not JSON-serializable",)
+
+    with pytest.raises(TypeError) as info:
+        serializer.dumpb(object())
     assert info.value.args == (f"Type {object} is not JSON-serializable",)
 
     for tz in (timezone("Asia/Tokyo"), timezone("US/Eastern"), UTC):

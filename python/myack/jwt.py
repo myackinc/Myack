@@ -88,8 +88,8 @@ class TokenEncoder(ABC):
         if self.ttl:
             payload["exp"] = payload["iat"] + self.ttl
         segments = [
-            b64encode(self.serializer.dumps(header)),
-            b64encode(self.serializer.dumps(payload)),
+            b64encode(self.serializer.dumpb(header)),
+            b64encode(self.serializer.dumpb(payload)),
         ]
         signing_input = b".".join(segments)
         segments.append(b64encode(self.sign(payload, header, signing_input)))
@@ -103,8 +103,8 @@ class TokenEncoder(ABC):
             signing_input, signature_raw = token.rsplit(b".", 1)
             header_raw, payload_raw = signing_input.split(b".")
 
-            header = self.serializer.loads(b64decode(header_raw))
-            payload = self.serializer.loads(b64decode(payload_raw))
+            header = self.serializer.loadb(b64decode(header_raw))
+            payload = self.serializer.loadb(b64decode(payload_raw))
             signature = b64decode(signature_raw)
         except (ValueError, TypeError, binascii.Error):
             raise JWTInvalid(sub=self.sub)

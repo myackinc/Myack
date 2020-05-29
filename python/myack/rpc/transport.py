@@ -60,9 +60,9 @@ class HTTPRoutes(RouteTable):
     async def handle_json(self, json_request: bytes) -> bytes:
         # Parse request
         try:
-            raw_request = self.serializer.loads(json_request)
+            raw_request = self.serializer.loadb(json_request)
         except (ValueError, TypeError) as e:
-            return self.serializer.dumps(Response(error=RPCParseError(reason=str(e))))
+            return self.serializer.dumpb(Response(error=RPCParseError(reason=str(e))))
 
         # Handle request
         if isinstance(raw_request, list):
@@ -74,10 +74,10 @@ class HTTPRoutes(RouteTable):
 
         # Serialize response
         try:
-            return self.serializer.dumps(response)
+            return self.serializer.dumpb(response)
         except (ValueError, TypeError):
             self.logger.exception("Unexpected exception")
-            return self.serializer.dumps(Response(error=RPCInternalError()))
+            return self.serializer.dumpb(Response(error=RPCInternalError()))
 
     async def handle_raw(self, raw_request: Dict[str, Any]) -> Response:
         try:
@@ -126,7 +126,7 @@ class Client:
         }
 
     def make_response(self, response_body: bytes) -> Any:
-        response_data = self.serializer.loads(response_body)
+        response_data = self.serializer.loadb(response_body)
         if isinstance(response_data, list):
             result = []
             for resp in response_data:
@@ -167,7 +167,7 @@ class Client:
     async def request(
         self, method: str, meta: Dict[str, Any] = None, **params
     ) -> Dict[str, Any]:
-        request_body = self.serializer.dumps(self.make_request(method, meta, params))
+        request_body = self.serializer.dumpb(self.make_request(method, meta, params))
         async with self.http_client.post(self.endpoint, data=request_body) as response:
             response.raise_for_status()
             response_body = await response.read()
@@ -175,7 +175,7 @@ class Client:
 
     async def batch(self, *request_data: Dict[str, Any]) -> List[Any]:
         request_data = [self.make_request(**r) for r in request_data]  # type: ignore
-        request_body = self.serializer.dumps(request_data)
+        request_body = self.serializer.dumpb(request_data)
         async with self.http_client.post(self.endpoint, data=request_body) as response:
             response.raise_for_status()
             response_body = await response.read()
