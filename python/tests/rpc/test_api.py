@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 import pytest
 import validx
 
@@ -15,6 +17,8 @@ from myack.exc import BaseError
 
 @pytest.mark.asyncio
 async def test_api(conductor):
+    retire = date.today() + timedelta(days=90)
+
     class DivisionByZero(BaseError, code="division_by_zero"):
         message = "Division by zero"
 
@@ -56,7 +60,7 @@ async def test_api(conductor):
             except ZeroDivisionError:
                 raise DivisionByZero()
 
-    class V10(APIVersion, version=(1, 0), deprecated=True):
+    class V10(APIVersion, version=(1, 0), retire=retire):
 
         foo: Foo
 
@@ -146,7 +150,7 @@ async def test_api(conductor):
             "App.middleware_1",
         ],
     }
-    assert response.warnings == [RPCDeprecatedVersion()]
+    assert response.warnings == [RPCDeprecatedVersion(retire=retire)]
     response = await app.dispatch(
         Request(id=1, method="foo.nested.get_nothing", meta={"version": (1, 0)})
     )
@@ -247,8 +251,8 @@ async def test_api(conductor):
 
     response = await app.dispatch(Request(id=1, method="list_versions"))
     assert response.result == [
-        {"version": (1, 0), "description": "", "deprecated": True},
-        {"version": (2, 1), "description": "", "deprecated": False},
+        {"version": (1, 0), "description": "", "deprecated": True, "retire": retire},
+        {"version": (2, 1), "description": "", "deprecated": False, "retire": None},
     ]
 
     response = await app.dispatch(Request(id=1, method="list_exceptions"))

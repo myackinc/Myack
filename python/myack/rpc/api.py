@@ -1,4 +1,5 @@
 import asyncio
+from datetime import date
 from functools import partial
 from inspect import cleandoc
 from typing import (
@@ -6,6 +7,7 @@ from typing import (
     TypeVar,
     Type,
     ClassVar,
+    Optional,
     Union,
     Dict,
     List,
@@ -219,20 +221,27 @@ class Version(NamedTuple):
 class APIVersion(Dispatcher):
     version: ClassVar[Version]
     deprecated: ClassVar[bool] = False
+    retire: ClassVar[Optional[date]] = None
 
     def __init_subclass__(
-        cls, *, version: Tuple[int, int], deprecated: bool = False, **kw
+        cls,
+        *,
+        version: Tuple[int, int],
+        deprecated: bool = False,
+        retire: date = None,
+        **kw,
     ):
         super().__init_subclass__(**kw)
         cls.version = Version(*version)
-        cls.deprecated = deprecated
+        cls.deprecated = deprecated or retire is not None
+        cls.retire = retire
 
     @middleware(100)
     async def set_version_info(self, handler: Handler, request: Request) -> Response:
         response = await handler(request)
         response.meta.setdefault("version", self.version)
         if self.deprecated:
-            response.warnings.append(RPCDeprecatedVersion())
+            response.warnings.append(RPCDeprecatedVersion(retire=self.retire))
         return response
 
 
@@ -289,6 +298,7 @@ class API(Dispatcher):
                     {
                         "version": minor.version,
                         "deprecated": minor.deprecated,
+                        "retire": minor.retire,
                         "description": cleandoc(minor.__doc__ or ""),
                     }
                 )

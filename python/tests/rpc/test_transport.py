@@ -1,4 +1,5 @@
 import asyncio
+from datetime import date, timedelta
 
 import pytest
 import validx
@@ -134,9 +135,10 @@ async def test_errors(conductor, unused_tcp_port):
         assert exc.data["reason"]["id"] == "Required key is not provided."
 
 
+@pytest.mark.parametrize("retire", [None, date.today() + timedelta(days=30)])
 @pytest.mark.asyncio
-async def test_warnings(conductor, unused_tcp_port):
-    class V10(APIVersion, version=(1, 0), deprecated=True):
+async def test_warnings(conductor, unused_tcp_port, retire):
+    class V10(APIVersion, version=(1, 0), deprecated=True, retire=retire):
         @handler(schema=validx.Dict({"x": validx.Int(), "y": validx.Int()}))
         async def sum(self, x, y):
             return x + y
@@ -158,7 +160,7 @@ async def test_warnings(conductor, unused_tcp_port):
     with pytest.warns(RPCDeprecatedVersion) as info:
         assert await client.request("sum", {"version": [1, 0]}, x=1, y=2) == 3
     assert len(info) == 1
-    assert info[0].message == RPCDeprecatedVersion()
+    assert info[0].message == RPCDeprecatedVersion(retire=retire)
 
     with pytest.warns(RPCDeprecatedVersion) as info:
         assert await client.batch(
@@ -166,5 +168,5 @@ async def test_warnings(conductor, unused_tcp_port):
             {"method": "sum", "meta": {"version": [1, 0]}, "params": {"x": 3, "y": 5}},
         ) == [3, 8]
     assert len(info) == 2
-    assert info[0].message == RPCDeprecatedVersion()
-    assert info[1].message == RPCDeprecatedVersion()
+    assert info[0].message == RPCDeprecatedVersion(retire=retire)
+    assert info[1].message == RPCDeprecatedVersion(retire=retire)
