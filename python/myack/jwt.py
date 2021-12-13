@@ -86,7 +86,7 @@ class TokenEncoder(ABC):
         payload["sub"] = self.sub
         payload["iat"] = self.timer.tsnow()
         if self.ttl:
-            payload["exp"] = payload["iat"] + self.ttl
+            payload.setdefault("exp", payload["iat"] + self.ttl)
         segments = [
             b64encode(self.serializer.dumpb(header)),
             b64encode(self.serializer.dumpb(payload)),

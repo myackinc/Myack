@@ -115,6 +115,19 @@ async def test_jwt_ttl(conductor, config, ttl):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("ttl", [0, 60])
+async def test_jwt_override_ttl(conductor, config, ttl):
+    config["jwt.test"].update(ttl=ttl, max_ttl=120)
+
+    jwt = await conductor(JWT, config=config)
+
+    exp = jwt.timer.tsnow() + 120
+    token = jwt.encode("test", {"foo": "bar", "exp": exp})
+    payload = jwt.decode("test", token)
+    assert payload["exp"] == exp
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("max_ttl", [0, 90])
 async def test_jwt_max_ttl(conductor, config, max_ttl):
     config["jwt.test"].update(ttl=60, max_ttl=max_ttl)
