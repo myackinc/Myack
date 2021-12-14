@@ -83,6 +83,7 @@ class TokenEncoder(ABC):
 
     def encode(self, payload: Dict[str, Any], header: Dict[str, Any] = None) -> bytes:
         header = dict(header or {}, typ="JWT", alg=self.alg)
+        payload = payload.copy()
         payload["sub"] = self.sub
         payload["iat"] = self.timer.tsnow()
         if self.ttl:

@@ -45,9 +45,11 @@ async def test_jwt(conductor, config):
     assert repr(jwt.encoders["test"]) == f"<{config['jwt.test.alg']}(test)>"
 
     now = jwt.timer.tsnow()
-    token = jwt.encode("test", {"foo": "bar"})
+    original_payload = {"foo": "bar"}
+    token = jwt.encode("test", original_payload)
     payload = jwt.decode("test", token)
     assert payload["foo"] == "bar"
+    assert payload != original_payload  # Original payload is not affected
 
     payload = jwt.decode("test", token.decode("utf-8"))
     assert payload["foo"] == "bar"
