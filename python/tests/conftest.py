@@ -1,5 +1,5 @@
 import pytest
-from aioconductor import Conductor
+from aioconductor import Conductor, SimpleConfigPolicy
 from configtree import Tree
 
 from myack import exc
@@ -10,7 +10,8 @@ def conductor(event_loop):
     async def sigleton(*components, config=None):
         assert sigleton.instance is None
         sigleton.instance = instance = Conductor(
-            config=config or Tree(), loop=event_loop
+            config_policy=SimpleConfigPolicy(config or Tree()),
+            loop=event_loop,
         )
         result = [instance.add(component) for component in components]
         await instance.setup()
