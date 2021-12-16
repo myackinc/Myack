@@ -46,3 +46,9 @@ async def test_serializer(conductor):
 
     t = datetime.now().time()
     assert t == serializer.loads(serializer.dumps(t))
+
+    mapping = {1: "x", 2: "y"}
+    assert mapping == serializer.loads(serializer.dumps(mapping))
+
+    set_ = {1, 2, 3}
+    assert set_ == serializer.loads(serializer.dumps(set_))

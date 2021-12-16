@@ -121,3 +121,31 @@ def dump_time(t):
 @Serializer.add_loader("time")
 def load_time(hour=0, minute=0, second=0, microsecond=0):
     return time(hour, minute, second, microsecond)
+
+
+@Serializer.add_dumper(dict, "mapping")
+def dump_mapping(mapping):
+    return {
+        "items": [
+            {
+                "key": key,
+                "value": value,
+            }
+            for key, value in mapping.items()
+        ]
+    }
+
+
+@Serializer.add_loader("mapping")
+def load_mapping(items):
+    return {i["key"]: i["value"] for i in items}
+
+
+@Serializer.add_dumper(set, "set")
+def dump_set(set_):
+    return {"items": sorted(set_)}
+
+
+@Serializer.add_loader("set")
+def load_set(items):
+    return set(items)
