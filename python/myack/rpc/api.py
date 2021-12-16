@@ -1,23 +1,8 @@
 import asyncio
+import typing as t
 from datetime import date
 from functools import partial
 from inspect import cleandoc
-from typing import (
-    cast,
-    TypeVar,
-    Type,
-    ClassVar,
-    Optional,
-    Union,
-    Dict,
-    List,
-    Tuple,
-    NamedTuple,
-    Any,
-    Callable,
-    Awaitable,
-    Iterator,
-)
 
 import validx
 from aioconductor import Component
@@ -34,18 +19,18 @@ from .exc import (
 )
 
 
-Func = TypeVar("Func")
-Decorator = Callable[[Func], Func]
+Func = t.TypeVar("Func")
+Decorator = t.Callable[[Func], Func]
 
 
 def handler(
     f: Func = None,
     *,
     shield: bool = True,
-    raises: Union[Type[BaseError], Tuple[Type[BaseError], ...]] = (),
+    raises: t.Union[t.Type[BaseError], t.Tuple[t.Type[BaseError], ...]] = (),
     schema: validx.Validator = None,
     **kw,
-) -> Union[Func, Decorator]:
+) -> t.Union[Func, Decorator]:
     def decorator(f: Func) -> Func:
         f.rpc_handler_info = dict(  # type: ignore
             shield=shield, raises=raises, schema=schema or validx.Dict({}), **kw
@@ -63,17 +48,17 @@ def middleware(order: int) -> Decorator:
     return decorator
 
 
-class MethodDef(NamedTuple):
+class MethodDef(t.NamedTuple):
     name: str
-    handler: Callable[..., Awaitable[Any]]
-    namespaces: Tuple["Namespace", ...]
+    handler: t.Callable[..., t.Awaitable[t.Any]]
+    namespaces: t.Tuple["Namespace", ...]
 
 
 class Namespace(Component):
 
     enabled: bool = True
 
-    _middlewares: List[Middleware]
+    _middlewares: t.List[Middleware]
 
     async def on_setup(self) -> None:
         self._middlewares = []
@@ -90,8 +75,10 @@ class Namespace(Component):
         del self._middlewares
 
     def iter_methods(
-        self, namespaces: Tuple["Namespace", ...] = (), prefix: str = ""
-    ) -> Iterator[MethodDef]:
+        self,
+        namespaces: t.Tuple["Namespace", ...] = (),
+        prefix: str = "",
+    ) -> t.Iterator[MethodDef]:
         attrs = (
             (name, getattr(self, name))
             for name in dir(self)
@@ -110,7 +97,7 @@ class Namespace(Component):
 
 class Dispatcher(Namespace):
 
-    _methods: Dict[str, MethodDef]
+    _methods: t.Dict[str, MethodDef]
 
     async def on_setup(self) -> None:
         await super().on_setup()
@@ -170,15 +157,18 @@ class Dispatcher(Namespace):
 
         handler: Handler = wrapper
         for middleware in reversed(request.middlewares):
-            handler = cast(Handler, partial(middleware, handler))
+            handler = t.cast(Handler, partial(middleware, handler))
 
         return await handler(request)
 
-    def format_schema_error(self, error: validx.exc.ValidationError) -> Dict[str, str]:
+    def format_schema_error(
+        self,
+        error: validx.exc.ValidationError,
+    ) -> t.Dict[str, str]:
         return dict(validx.exc.format_error(error))
 
     @handler(shield=False, builtin=True)
-    async def list_methods(self) -> List[Dict[str, Any]]:
+    async def list_methods(self) -> t.List[t.Dict[str, t.Any]]:
         """List methods provided by API/Version"""
         result = []
         for method_def in self._methods.values():
@@ -198,7 +188,7 @@ class Dispatcher(Namespace):
         return result
 
     @handler(shield=False, builtin=True)
-    async def list_exceptions(self) -> List[Dict[str, Any]]:
+    async def list_exceptions(self) -> t.List[t.Dict[str, t.Any]]:
         """List exceptions defined within API"""
         result = []
         for code, exc_class in BaseExc.registry.items():
@@ -209,24 +199,24 @@ class Dispatcher(Namespace):
                     "description": cleandoc(exc_class.__doc__ or ""),
                 }
             )
-        result.sort(key=lambda e: e["code"])
+        result.sort(key=lambda e: e["code"])  # type: ignore
         return result
 
 
-class Version(NamedTuple):
+class Version(t.NamedTuple):
     major: int
     minor: int
 
 
 class APIVersion(Dispatcher):
-    version: ClassVar[Version]
-    deprecated: ClassVar[bool] = False
-    retire: ClassVar[Optional[date]] = None
+    version: t.ClassVar[Version]
+    deprecated: t.ClassVar[bool] = False
+    retire: t.ClassVar[t.Optional[date]] = None
 
     def __init_subclass__(
         cls,
         *,
-        version: Tuple[int, int],
+        version: t.Tuple[int, int],
         deprecated: bool = False,
         retire: date = None,
         **kw,
@@ -247,7 +237,7 @@ class APIVersion(Dispatcher):
 
 class API(Dispatcher):
 
-    _versions: Dict[int, Dict[int, APIVersion]]
+    _versions: t.Dict[int, t.Dict[int, APIVersion]]
 
     async def on_setup(self) -> None:
         await super().on_setup()
@@ -289,7 +279,7 @@ class API(Dispatcher):
         return await context.dispatch(request)
 
     @handler(shield=False, builtin=True)
-    async def list_versions(self) -> List[Dict[str, Any]]:
+    async def list_versions(self) -> t.List[t.Dict[str, t.Any]]:
         """List supported API versions"""
         result = []
         for majors in self._versions.values():

@@ -1,5 +1,5 @@
 import inspect
-from typing import Optional, Callable, Awaitable, ClassVar, Any, Dict, List
+import typing as t
 
 import validx
 from cached_property import cached_property
@@ -9,13 +9,13 @@ from .exc import RPCInvalidRequest
 from .response import Response
 
 
-Handler = Callable[["Request"], Awaitable[Response]]
-Middleware = Callable[[Handler, "Request"], Awaitable[Response]]
+Handler = t.Callable[["Request"], t.Awaitable[Response]]
+Middleware = t.Callable[[Handler, "Request"], t.Awaitable[Response]]
 
 
 class Request:
 
-    schema: ClassVar[validx.Validator] = validx.Dict(
+    schema: t.ClassVar[validx.Validator] = validx.Dict(
         {
             "id": validx.Int(),
             "method": validx.Str(encoding="ascii"),
@@ -35,21 +35,21 @@ class Request:
 
     id: int
     method: str
-    meta: Dict[str, Any]
-    params: Dict[str, Any]
+    meta: t.Dict[str, t.Any]
+    params: t.Dict[str, t.Any]
 
-    middlewares: List[Middleware]
-    injections: Dict[str, Any]
+    middlewares: t.List[Middleware]
+    injections: t.Dict[str, t.Any]
 
-    handler: Optional[Callable[..., Awaitable[Any]]]
-    handler_info: Dict[str, Any]
+    handler: t.Optional[t.Callable[..., t.Awaitable[t.Any]]]
+    handler_info: t.Dict[str, t.Any]
 
     def __init__(
         self,
         id: int,
         method: str,
-        meta: Dict[str, Any] = None,
-        params: Dict[str, Any] = None,
+        meta: t.Dict[str, t.Any] = None,
+        params: t.Dict[str, t.Any] = None,
     ) -> None:
         self.id = id
         self.method = method
@@ -63,14 +63,14 @@ class Request:
         self.handler_info = {}
 
     @classmethod
-    def load(cls, payload: Dict[str, Any]) -> "Request":
+    def load(cls, payload: t.Dict[str, t.Any]) -> "Request":
         try:
             return cls(**cls.schema(payload))
         except validx.exc.ValidationError as e:
             raise RPCInvalidRequest(reason=cls.format_schema_error(e))
 
     @classmethod
-    def format_schema_error(cls, error: validx.exc.ValidationError) -> Dict[str, str]:
+    def format_schema_error(cls, error: validx.exc.ValidationError) -> t.Dict[str, str]:
         return dict(validx.exc.format_error(error))
 
     @cached_property
@@ -80,10 +80,10 @@ class Request:
 
     def response(
         self,
-        result: Any = None,
-        meta: Dict[str, Any] = None,
+        result: t.Any = None,
+        meta: t.Dict[str, t.Any] = None,
         error: BaseError = None,
-        warnings: List[BaseWarning] = None,
+        warnings: t.List[BaseWarning] = None,
     ) -> Response:
         return Response(
             id=self.id, meta=meta, result=result, error=error, warnings=warnings

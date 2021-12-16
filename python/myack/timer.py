@@ -1,14 +1,14 @@
+import typing as t
 from time import time
 from datetime import datetime, timedelta, tzinfo, timezone
-from typing import Optional
 
 from aioconductor import Component
 
 
 class Timer(Component):
 
-    _current: Optional[float]
-    _updated: Optional[float]
+    _current: t.Optional[float]
+    _updated: t.Optional[float]
 
     async def on_setup(self) -> None:
         self.reset()

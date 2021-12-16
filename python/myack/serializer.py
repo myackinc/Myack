@@ -1,6 +1,6 @@
+import typing as t
 from abc import ABC, abstractmethod
 from datetime import datetime, date, time, timedelta, timezone
-from typing import ClassVar, Type, Callable, Any, Dict
 
 from aioconductor import Component
 import rapidjson
@@ -8,17 +8,17 @@ import rapidjson
 
 class Serializable(ABC):
     @abstractmethod
-    def dump(self) -> Any:
+    def dump(self) -> t.Any:
         """Dump object into serializable one"""
 
 
 class Serializer(Component):
 
-    _loads: ClassVar[Callable] = rapidjson.loads
-    _dumps: ClassVar[Callable] = rapidjson.dumps
+    _loads: t.ClassVar[t.Callable] = rapidjson.loads
+    _dumps: t.ClassVar[t.Callable] = rapidjson.dumps
 
-    loaders: ClassVar[Dict[str, Callable]] = {}
-    dumpers: ClassVar[Dict[Type, Callable]] = {}
+    loaders: t.ClassVar[t.Dict[str, t.Callable]] = {}
+    dumpers: t.ClassVar[t.Dict[t.Type, t.Callable]] = {}
 
     @classmethod
     def add_loader(cls, name: str):
@@ -29,23 +29,23 @@ class Serializer(Component):
         return decorator
 
     @classmethod
-    def add_dumper(cls, type_: Type, typename: str):
+    def add_dumper(cls, type_: t.Type, typename: str):
         def decorator(func):
             cls.dumpers[type_] = (typename, func)
             return func
 
         return decorator
 
-    def dumps(self, data: Any) -> str:
+    def dumps(self, data: t.Any) -> str:
         return self._dumps(data, default=self.before_dump)
 
-    def dumpb(self, data: Any) -> bytes:
+    def dumpb(self, data: t.Any) -> bytes:
         return self._dumps(data, default=self.before_dump).encode("utf-8")
 
-    def loads(self, data: str) -> Any:
+    def loads(self, data: str) -> t.Any:
         return self._loads(data, object_hook=self.after_load)
 
-    def loadb(self, data: bytes) -> Any:
+    def loadb(self, data: bytes) -> t.Any:
         return self._loads(data, object_hook=self.after_load)
 
     def before_dump(self, obj):

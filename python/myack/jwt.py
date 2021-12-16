@@ -3,8 +3,8 @@ import hashlib
 import base64
 import binascii
 import random
+import typing as t
 from abc import ABC, abstractmethod
-from typing import TypeVar, ClassVar, Type, Callable, Optional, Any, Dict, Union
 
 import validx
 from aioconductor import Component
@@ -15,16 +15,16 @@ from .timer import Timer
 from .serializer import Serializer
 
 
-TypeTokenEncoder = TypeVar("TypeTokenEncoder", bound=Type["TokenEncoder"])
+TypeTokenEncoder = t.TypeVar("TypeTokenEncoder", bound=t.Type["TokenEncoder"])
 
 
 class JWT(Component):
-    algorithms: ClassVar[Dict[str, Type["TokenEncoder"]]] = {}
+    algorithms: t.ClassVar[t.Dict[str, t.Type["TokenEncoder"]]] = {}
 
     serializer: Serializer
     timer: Timer
 
-    encoders: Dict[str, "TokenEncoder"]
+    encoders: t.Dict[str, "TokenEncoder"]
 
     async def on_setup(self) -> None:
         self.encoders = {}
@@ -44,16 +44,19 @@ class JWT(Component):
         return algorithm
 
     def encode(
-        self, sub: str, payload: Dict[str, Any], header: Dict[str, Any] = None
+        self,
+        sub: str,
+        payload: t.Dict[str, t.Any],
+        header: t.Dict[str, t.Any] = None,
     ) -> bytes:
         return self.encoders[sub].encode(payload, header)
 
-    def decode(self, sub: str, token: Union[bytes, str]) -> Dict[str, Any]:
+    def decode(self, sub: str, token: t.Union[bytes, str]) -> t.Dict[str, t.Any]:
         return self.encoders[sub].decode(token)
 
 
 class TokenEncoder(ABC):
-    alg: ClassVar[str]
+    alg: t.ClassVar[str]
 
     serializer: Serializer
     timer: Timer
@@ -81,7 +84,11 @@ class TokenEncoder(ABC):
     def __repr__(self):
         return f"<{self.__class__.__name__}({self.sub})>"
 
-    def encode(self, payload: Dict[str, Any], header: Dict[str, Any] = None) -> bytes:
+    def encode(
+        self,
+        payload: t.Dict[str, t.Any],
+        header: t.Dict[str, t.Any] = None,
+    ) -> bytes:
         header = dict(header or {}, typ="JWT", alg=self.alg)
         payload = payload.copy()
         payload["sub"] = self.sub
@@ -96,7 +103,7 @@ class TokenEncoder(ABC):
         segments.append(b64encode(self.sign(payload, header, signing_input)))
         return b".".join(segments)
 
-    def decode(self, token: Union[bytes, str]) -> Dict[str, Any]:
+    def decode(self, token: t.Union[bytes, str]) -> t.Dict[str, t.Any]:
         try:
             if isinstance(token, str):
                 token = token.encode("ascii")
@@ -142,7 +149,11 @@ class TokenEncoder(ABC):
             extra=(validx.Str(), validx.Any()),
         )
 
-    def verify_claims(self, payload: Dict[str, Any], header: Dict[str, Any]) -> None:
+    def verify_claims(
+        self,
+        payload: t.Dict[str, t.Any],
+        header: t.Dict[str, t.Any],
+    ) -> None:
         if self.ttl:
             if payload["exp"] + 60 < self.timer.tsnow():
                 # Add 60 seconds leeway
@@ -152,21 +163,24 @@ class TokenEncoder(ABC):
 
     @abstractmethod
     def sign(
-        self, payload: Dict[str, Any], header: Dict[str, Any], signing_input: bytes
+        self,
+        payload: t.Dict[str, t.Any],
+        header: t.Dict[str, t.Any],
+        signing_input: bytes,
     ) -> bytes:
         """Generate JWT signature"""
 
 
 class HSEncoder(TokenEncoder):
 
-    keylen: ClassVar[int]
-    algorithm: ClassVar[Callable]
+    keylen: t.ClassVar[int]
+    algorithm: t.ClassVar[t.Callable]
 
     key: bytes
     rot_salt: int
     rot_period: int
 
-    _random: Optional[random.Random]
+    _random: t.Optional[random.Random]
 
     def __init__(
         self,
@@ -200,7 +214,10 @@ class HSEncoder(TokenEncoder):
         return result
 
     def sign(
-        self, payload: Dict[str, Any], header: Dict[str, Any], signing_input: bytes
+        self,
+        payload: t.Dict[str, t.Any],
+        header: t.Dict[str, t.Any],
+        signing_input: bytes,
     ) -> bytes:
         effective_key = self.get_effective_key(payload["iat"])
         return hmac.new(effective_key, signing_input, self.algorithm).digest()
@@ -208,23 +225,23 @@ class HSEncoder(TokenEncoder):
 
 @JWT.add_algorithm
 class HS256(HSEncoder):
-    alg: ClassVar[str] = "HS256"
-    keylen: ClassVar[int] = 32
-    algorithm: ClassVar[Callable] = hashlib.sha256
+    alg: t.ClassVar[str] = "HS256"
+    keylen: t.ClassVar[int] = 32
+    algorithm: t.ClassVar[t.Callable] = hashlib.sha256
 
 
 @JWT.add_algorithm
 class HS384(HSEncoder):
-    alg: ClassVar[str] = "HS384"
-    keylen: ClassVar[int] = 48
-    algorithm: ClassVar[Callable] = hashlib.sha384
+    alg: t.ClassVar[str] = "HS384"
+    keylen: t.ClassVar[int] = 48
+    algorithm: t.ClassVar[t.Callable] = hashlib.sha384
 
 
 @JWT.add_algorithm
 class HS512(HSEncoder):
-    alg: ClassVar[str] = "HS512"
-    keylen: ClassVar[int] = 64
-    algorithm: ClassVar[Callable] = hashlib.sha512
+    alg: t.ClassVar[str] = "HS512"
+    keylen: t.ClassVar[int] = 64
+    algorithm: t.ClassVar[t.Callable] = hashlib.sha512
 
 
 class JWTError(BaseError, code="jwt"):

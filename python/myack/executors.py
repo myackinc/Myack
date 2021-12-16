@@ -1,13 +1,13 @@
+import typing as t
 from concurrent import futures
 from functools import partial
-from typing import ClassVar, Type, Any, Callable
 
 from aioconductor import Component
 
 
 class Executor(Component):
 
-    executor_class: ClassVar[Type[futures.Executor]]
+    executor_class: t.ClassVar[t.Type[futures.Executor]]
     instance: futures.Executor
 
     async def on_setup(self) -> None:
@@ -17,17 +17,17 @@ class Executor(Component):
         self.instance.shutdown()
         del self.instance
 
-    async def run(self, func: Callable, *agrs, **kw) -> Any:
+    async def run(self, func: t.Callable, *agrs, **kw) -> t.Any:
         return await self.loop.run_in_executor(
             executor=self.instance, func=partial(func, *agrs, **kw)
         )
 
 
 class IOExecutor(Executor):
-    executor_class: ClassVar[Type[futures.Executor]] = futures.ThreadPoolExecutor
+    executor_class: t.ClassVar[t.Type[futures.Executor]] = futures.ThreadPoolExecutor
     instance: futures.ThreadPoolExecutor
 
 
 class CPUExecutor(Executor):
-    executor_class: ClassVar[Type[futures.Executor]] = futures.ProcessPoolExecutor
+    executor_class: t.ClassVar[t.Type[futures.Executor]] = futures.ProcessPoolExecutor
     instance: futures.ProcessPoolExecutor

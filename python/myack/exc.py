@@ -1,4 +1,4 @@
-from typing import ClassVar, Type, Optional, Any, Dict
+import typing as t
 
 from .serializer import Serializable
 
@@ -6,11 +6,11 @@ from .serializer import Serializable
 class BaseExc(Exception, Serializable):
     """Base Exception"""
 
-    registry: ClassVar[Dict[str, Type["BaseExc"]]] = {}
+    registry: t.ClassVar[t.Dict[str, t.Type["BaseExc"]]] = {}
 
-    code: ClassVar[str]
-    message: Optional[str] = None
-    data: Dict[str, Any]
+    code: t.ClassVar[str]
+    message: t.Optional[str] = None
+    data: t.Dict[str, t.Any]
 
     def __init_subclass__(cls, *, code: str) -> None:
         try:
@@ -37,10 +37,10 @@ class BaseExc(Exception, Serializable):
         assert self.message is not None, "Empty exception message"
         super().__init__(self.code, self.message, self.data)
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: t.Any) -> bool:
         return type(self) is type(other) and self.args == other.args
 
-    def dump(self) -> Dict[str, Any]:
+    def dump(self) -> t.Dict[str, t.Any]:
         return {"code": self.code, "message": self.message, "data": self.data}
 
 

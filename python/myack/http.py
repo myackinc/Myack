@@ -1,14 +1,13 @@
 import warnings
-
-from typing import TypeVar, ClassVar, Union, Optional, Callable, List, Iterator
+import typing as t
 
 from aioconductor import Component
 from aiohttp import web, ClientSession
 from yarl import URL
 
 
-Func = TypeVar("Func")
-Decorator = Callable[[Func], Func]
+Func = t.TypeVar("Func")
+Decorator = t.Callable[[Func], Func]
 
 
 def route(method: str, path: str, **kwargs) -> Decorator:
@@ -33,13 +32,13 @@ def middleware(order: int) -> Decorator:
 
 class RouteTable(Component):
 
-    prefix: ClassVar[str] = ""
+    prefix: t.ClassVar[str] = ""
 
     def __init_subclass__(cls, *, prefix: str = "", **kw) -> None:
         super().__init_subclass__(**kw)
         cls.prefix = prefix
 
-    def iter_routes(self, prefix: str = "") -> Iterator[web.RouteDef]:
+    def iter_routes(self, prefix: str = "") -> t.Iterator[web.RouteDef]:
         prefix = prefix.rstrip("/")
         for name in dir(self):
             if name.startswith("_"):
@@ -67,7 +66,7 @@ class Application(RouteTable):
 
     async def on_setup(self) -> None:
         middlewares = []
-        applications: List["Application"] = []
+        applications: t.List["Application"] = []
 
         attrs = (getattr(self, name) for name in dir(self) if not name.startswith("_"))
         for attr in attrs:
@@ -94,7 +93,7 @@ class Server(Application):
 
     _runner: web.AppRunner
     _site: web.TCPSite
-    _client: Optional["Client"]
+    _client: t.Optional["Client"]
 
     async def on_setup(self) -> None:
         await super().on_setup()
@@ -148,15 +147,15 @@ with warnings.catch_warnings():
             self.app_port = port
             super().__init__(**kw)
 
-        def app_url(self, url: Union[str, URL]) -> Union[str, URL]:
+        def app_url(self, url: t.Union[str, URL]) -> t.Union[str, URL]:
             if isinstance(url, str) and "://" not in url:
                 return URL.build(
                     scheme="http", host=self.app_host, port=self.app_port, path=url
                 )
             return url
 
-        def _request(self, method: str, str_or_url: Union[str, URL], **kw):
+        def _request(self, method: str, str_or_url: t.Union[str, URL], **kw):
             return super()._request(method, self.app_url(str_or_url), **kw)
 
-        def _ws_connect(self, url: Union[str, URL], **kw):
+        def _ws_connect(self, url: t.Union[str, URL], **kw):
             return super()._ws_connect(self.app_url(url), **kw)

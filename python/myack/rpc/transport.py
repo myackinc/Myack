@@ -1,8 +1,8 @@
 import asyncio
 import sys
 import warnings
+import typing as t
 from random import randint
-from typing import cast, Type, Optional, Dict, List, Any
 
 from aiohttp import web
 
@@ -20,9 +20,9 @@ class HTTPRoutes(RouteTable):
     api: API
     serializer: Serializer
 
-    _client: Optional["Client"]
+    _client: t.Optional["Client"]
 
-    def __init_subclass__(cls, *, api: Type[API], **kw) -> None:
+    def __init_subclass__(cls, *, api: t.Type[API], **kw) -> None:
         cls.__annotations__["api"] = api
         super().__init_subclass__(**kw)
 
@@ -79,7 +79,7 @@ class HTTPRoutes(RouteTable):
             self.logger.exception("Unexpected exception")
             return self.serializer.dumpb(Response(error=RPCInternalError()))
 
-    async def handle_raw(self, raw_request: Dict[str, Any]) -> Response:
+    async def handle_raw(self, raw_request: t.Dict[str, t.Any]) -> Response:
         try:
             request = Request.load(raw_request)
         except RPCInvalidRequest as e:
@@ -116,8 +116,11 @@ class Client:
         self.http_client = http_client
 
     def make_request(
-        self, method: str, meta: Dict[str, Any] = None, params: Dict[str, Any] = None
-    ) -> Dict[str, Any]:
+        self,
+        method: str,
+        meta: t.Dict[str, t.Any] = None,
+        params: t.Dict[str, t.Any] = None,
+    ) -> t.Dict[str, t.Any]:
         return {
             "id": randint(0, sys.maxsize),
             "method": method,
@@ -125,14 +128,14 @@ class Client:
             "params": params or {},
         }
 
-    def make_response(self, response_body: bytes) -> Any:
+    def make_response(self, response_body: bytes) -> t.Any:
         response_data = self.serializer.loadb(response_body)
         if isinstance(response_data, list):
             result = []
             for resp in response_data:
                 for warning in resp["warnings"]:
                     warnings.warn(
-                        cast(
+                        t.cast(
                             Warning,
                             BaseExc.dispatch(
                                 warning["code"], warning["message"], **warning["data"]
@@ -152,7 +155,7 @@ class Client:
         else:
             for warning in response_data["warnings"]:
                 warnings.warn(
-                    cast(
+                    t.cast(
                         Warning,
                         BaseExc.dispatch(
                             warning["code"], warning["message"], **warning["data"]
@@ -165,15 +168,18 @@ class Client:
             return response_data["result"]
 
     async def request(
-        self, method: str, meta: Dict[str, Any] = None, **params
-    ) -> Dict[str, Any]:
+        self,
+        method: str,
+        meta: t.Dict[str, t.Any] = None,
+        **params,
+    ) -> t.Dict[str, t.Any]:
         request_body = self.serializer.dumpb(self.make_request(method, meta, params))
         async with self.http_client.post(self.endpoint, data=request_body) as response:
             response.raise_for_status()
             response_body = await response.read()
             return self.make_response(response_body)
 
-    async def batch(self, *request_data: Dict[str, Any]) -> List[Any]:
+    async def batch(self, *request_data: t.Dict[str, t.Any]) -> t.List[t.Any]:
         request_data = [self.make_request(**r) for r in request_data]  # type: ignore
         request_body = self.serializer.dumpb(request_data)
         async with self.http_client.post(self.endpoint, data=request_body) as response:

@@ -1,4 +1,4 @@
-from typing import Optional, Any, Dict, List
+import typing as t
 
 from ..serializer import Serializable
 from ..exc import BaseError, BaseWarning
@@ -6,19 +6,19 @@ from ..exc import BaseError, BaseWarning
 
 class Response(Serializable):
 
-    id: Optional[int]
-    meta: Dict[str, Any]
-    result: Any
-    error: Optional[BaseError]
-    warnings: List[BaseWarning]
+    id: t.Optional[int]
+    meta: t.Dict[str, t.Any]
+    result: t.Any
+    error: t.Optional[BaseError]
+    warnings: t.List[BaseWarning]
 
     def __init__(
         self,
         id: int = None,
-        meta: Dict[str, Any] = None,
-        result: Any = None,
+        meta: t.Dict[str, t.Any] = None,
+        result: t.Any = None,
         error: BaseError = None,
-        warnings: List[BaseWarning] = None,
+        warnings: t.List[BaseWarning] = None,
     ) -> None:
         self.id = id
         self.meta = meta or {}
@@ -26,7 +26,7 @@ class Response(Serializable):
         self.error = error
         self.warnings = warnings or []
 
-    def dump(self) -> Dict[str, Any]:
+    def dump(self) -> t.Dict[str, t.Any]:
         return {
             "id": self.id,
             "meta": self.meta,
