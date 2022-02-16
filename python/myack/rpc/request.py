@@ -2,6 +2,7 @@ import inspect
 import typing as t
 
 import validx
+from multidict import MultiMapping
 from cached_property import cached_property
 
 from ..exc import BaseError, BaseWarning
@@ -11,6 +12,7 @@ from .response import Response
 
 Handler = t.Callable[["Request"], t.Awaitable[Response]]
 Middleware = t.Callable[[Handler, "Request"], t.Awaitable[Response]]
+TransportInfo = t.Union[MultiMapping[str], t.Mapping[str, str]]
 
 
 class Request:
@@ -37,6 +39,7 @@ class Request:
     method: str
     meta: t.Dict[str, t.Any]
     params: t.Dict[str, t.Any]
+    transport_info: TransportInfo
 
     middlewares: t.List[Middleware]
     injections: t.Dict[str, t.Any]
@@ -50,11 +53,13 @@ class Request:
         method: str,
         meta: t.Dict[str, t.Any] = None,
         params: t.Dict[str, t.Any] = None,
+        transport_info: TransportInfo = None,
     ) -> None:
         self.id = id
         self.method = method
         self.meta = meta if meta is not None else {}
         self.params = params if params is not None else {}
+        self.transport_info = transport_info if transport_info is not None else {}
 
         self.middlewares = []
         self.injections = {}
@@ -63,9 +68,13 @@ class Request:
         self.handler_info = {}
 
     @classmethod
-    def load(cls, payload: t.Dict[str, t.Any]) -> "Request":
+    def load(
+        cls,
+        payload: t.Dict[str, t.Any],
+        transport_info: TransportInfo = None,
+    ) -> "Request":
         try:
-            return cls(**cls.schema(payload))
+            return cls(**cls.schema(payload), transport_info=transport_info)
         except validx.exc.ValidationError as e:
             raise RPCInvalidRequest(reason=cls.format_schema_error(e))
 

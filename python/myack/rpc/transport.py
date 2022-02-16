@@ -10,7 +10,7 @@ from ..serializer import Serializer
 from ..http import RouteTable, Client as HTTPClient, route
 from ..exc import BaseExc, BaseError
 from .api import API
-from .request import Request
+from .request import Request, TransportInfo
 from .response import Response
 from .exc import RPCParseError, RPCInvalidRequest, RPCInternalError
 
@@ -49,7 +49,7 @@ class HTTPRoutes(RouteTable):
     async def post(self, http_request: web.Request) -> web.Response:
         try:
             json_request = await http_request.read()
-            json_response = await self.handle_json(json_request)
+            json_response = await self.handle_json(json_request, http_request.headers)
             return web.Response(content_type="application/json", body=json_response)
         except asyncio.CancelledError:  # pragma: no cover
             raise
@@ -57,7 +57,11 @@ class HTTPRoutes(RouteTable):
             self.logger.exception("Unexpected exception")
             raise web.HTTPInternalServerError()
 
-    async def handle_json(self, json_request: bytes) -> bytes:
+    async def handle_json(
+        self,
+        json_request: bytes,
+        http_headers: TransportInfo,
+    ) -> bytes:
         # Parse request
         try:
             raw_request = self.serializer.loadb(json_request)
@@ -67,10 +71,10 @@ class HTTPRoutes(RouteTable):
         # Handle request
         if isinstance(raw_request, list):
             response = await asyncio.gather(
-                *(self.handle_raw(r) for r in raw_request), loop=self.loop
+                *(self.handle_raw(r, http_headers) for r in raw_request), loop=self.loop
             )
         else:
-            response = await self.handle_raw(raw_request)  # type: ignore
+            response = await self.handle_raw(raw_request, http_headers)  # type: ignore
 
         # Serialize response
         try:
@@ -79,9 +83,13 @@ class HTTPRoutes(RouteTable):
             self.logger.exception("Unexpected exception")
             return self.serializer.dumpb(Response(error=RPCInternalError()))
 
-    async def handle_raw(self, raw_request: t.Dict[str, t.Any]) -> Response:
+    async def handle_raw(
+        self,
+        raw_request: t.Dict[str, t.Any],
+        http_headers: TransportInfo,
+    ) -> Response:
         try:
-            request = Request.load(raw_request)
+            request = Request.load(raw_request, transport_info=http_headers)
         except RPCInvalidRequest as e:
             request_id = (
                 raw_request["id"]
